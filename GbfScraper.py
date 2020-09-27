@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import GbfCharacter
 import Skill
 import re
+import pymongo
 from pprint import pprint
 
 class GbfScraper:
