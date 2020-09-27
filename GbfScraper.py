@@ -10,6 +10,9 @@ class GbfScraper:
     def __init__(self):
         servantList=[]
         print("scraper initialized")
+        # set up db connection
+        self.db = self.initializeConnection()
+        self.dbChars = self.db["characters"]
 
     def parseChar(self, char):
         charRow = char.find_all("td")
@@ -25,7 +28,12 @@ class GbfScraper:
         self.parseSupports(charDetails[3], character)
         #print(character.name, character.rarity, character.uncap, character.maxHP, character.maxATK, character.element, character.races, character.style, character.specialty, character.gender)
         #print(character.skills[1])
-        pprint(vars(character))
+        self.addToDB(character)
+        #pprint(vars(character))
+
+    def addToDB(self, char):
+        dict = vars(char)
+        self.dbChars.insert(char.__dict__)
 
     def parseSupport(self, supportRow):
         supportCells = supportRow.find_all("td")
@@ -53,7 +61,7 @@ class GbfScraper:
         skillsInfo = details.find_all("tr")
         for i in range(3, skillsInfo.__len__()):
             charSkill = self.parseSkill(skillsInfo[i])
-            char.setSkill(charSkill, i-2)
+            char.setSkill(charSkill, str(i-2))
 
     def parseOugi(self, details, char):
         ougiInfo = self.removeTooltips(details.find_all("td")[2].get_text()).split(' ', 1)
@@ -64,8 +72,17 @@ class GbfScraper:
         self.parseRarity(details.find("div", class_="char-rarity").find("img")['src'], char)
         # get char uncap
         self.parseUncap(details.find("div", class_="char-uncap"), char)
-        self.parseStats(details.find_all("div", class_="tabber")[1], char)
+        tabber = details.find_all("div", class_="tabber")
+        self.parseStats(tabber[1], char)
+        self.parseExtraData(tabber[1], char)
         # print(details)
+
+    def parseExtraData(self, details, char):
+        extraTable = details.find_all("div", class_="tabbertab")[1]
+        extraData = extraTable.select("div table tbody")
+        extraDataRows = extraData[0].find_all("tr")
+        char.setID(extraDataRows[1].find("td").get_text())
+        char.setCharID(extraDataRows[2].find("td").get_text())
 
     def parseRarity(self, img, char):
         if "Rarity_SSR.png" in img:
@@ -128,7 +145,7 @@ class GbfScraper:
             index = values[1].index("Total")
             bonusStat = values[1][:index]
         else:
-            bonusStat = 0
+            bonusStat = "0"
         return maxStat, bonusStat
 
     #characters can have multiple specialities
@@ -224,12 +241,21 @@ class GbfScraper:
     def convertLink(self, page):
         return "https://gbf.wiki" + page
 
+    def initializeConnection(self):
+        client = pymongo.MongoClient("mongodb://localhost:27017/")
+        db = client["gbf-api-dev"]
+        return db
 
     def start(self):
         listUrl = "https://gbf.wiki/All_Characters"
         page = requests.get(listUrl)
         soup = BeautifulSoup(page.content,'html.parser')
         results = soup.select("table tbody tr")
-        for char in range(1,11):
+        for char in range(1,3):
             self.parseChar(results[char])
 
+        #for x in self.dbChars.find():
+        #    print(x)
+
+        # drop db table after adding (dev only)
+        self.dbChars.drop()

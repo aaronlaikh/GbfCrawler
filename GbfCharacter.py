@@ -7,10 +7,10 @@ class GbfCharacter:
         self.skills = {}
 
     def setOugiEffect(self, pct, effect):
-        self.ougi = Ougi.Ougi(pct, effect)
+        self.ougi = repr(Ougi.Ougi(pct, effect))
 
     def setSkill(self, skill, slot):
-        self.skills[slot] = skill
+        self.skills[slot] = repr(skill)
 
     def setRarity(self, rarity):
         self.rarity = rarity
@@ -49,7 +49,7 @@ class GbfCharacter:
         self.gender = gender
 
     def setID(self, id):
-        self.id = id
+        self._id = id
 
     def setCharID(self, charid):
         self.charID = charid
