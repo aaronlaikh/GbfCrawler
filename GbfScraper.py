@@ -20,8 +20,9 @@ class GbfScraper:
         self.parseDetails(charDetails[0], character)
         self.parseOugi(charDetails[1], character)
         self.parseSkills(charDetails[2], character)
-        print(character.name, character.rarity, character.uncap, character.maxHP, character.maxATK, character.element, character.races, character.style, character.specialty, character.gender)
-        print(character.skills[1])
+        #print(character.name, character.rarity, character.uncap, character.maxHP, character.maxATK, character.element, character.races, character.style, character.specialty, character.gender)
+        #print(character.skills[1])
+        print(vars(character))
 
     def parseSkill(self, skillRow):
         skillCells = skillRow.find_all("td")
@@ -203,7 +204,7 @@ class GbfScraper:
 
     # convert a gbf.wiki relative hyperlink to absolute URI
     def convertLink(self, page):
-        return "https://gbf.wiki" + "/Bakura"#page
+        return "https://gbf.wiki" + "/Arulumaya"#page
 
 
     def start(self):

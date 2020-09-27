@@ -11,7 +11,6 @@ class GbfCharacter:
 
     def setSkill(self, skill, slot):
         self.skills[slot] = skill
-        print(self.skills[slot])
 
     def setRarity(self, rarity):
         self.rarity = rarity

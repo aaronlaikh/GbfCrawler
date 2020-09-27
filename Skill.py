@@ -16,3 +16,6 @@ class Skill:
     #TTD: determine different effects and set flags based on buffs/debuffs
     def setEffect(self, effect):
         self.effect = effect
+
+    def __repr__(self):
+        return str(vars(self))
