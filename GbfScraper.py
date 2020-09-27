@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import GbfCharacter
 import Skill
 import re
+from pprint import pprint
 
 class GbfScraper:
     def __init__(self):
@@ -20,15 +21,30 @@ class GbfScraper:
         self.parseDetails(charDetails[0], character)
         self.parseOugi(charDetails[1], character)
         self.parseSkills(charDetails[2], character)
+        self.parseSupports(charDetails[3], character)
         #print(character.name, character.rarity, character.uncap, character.maxHP, character.maxATK, character.element, character.races, character.style, character.specialty, character.gender)
         #print(character.skills[1])
-        print(vars(character))
+        pprint(vars(character))
+
+    def parseSupport(self, supportRow):
+        supportCells = supportRow.find_all("td")
+        skill = Skill.Skill(supportCells[1].get_text())
+        skill.setType(supportCells[2].get_text())
+        skill.setEffect(supportCells[3].get_text())
+        return skill
+
+    def parseSupports(self, details, char):
+        supportsInfo = details.find_all("tr")
+        for i in range(3, supportsInfo.__len__()):
+            charSkill = self.parseSupport(supportsInfo[i])
+            char.setSkill(charSkill, "support"+str(i-2))
 
     def parseSkill(self, skillRow):
         skillCells = skillRow.find_all("td")
         skill = Skill.Skill(skillCells[1].get_text())
         skill.setCooldown(skillCells[2].get_text())
         skill.setDuration(skillCells[3].get_text())
+        skill.setType(skillCells[4].get_text())
         skill.setEffect(skillCells[5].get_text())
         return skill
 
@@ -39,12 +55,8 @@ class GbfScraper:
             char.setSkill(charSkill, i-2)
 
     def parseOugi(self, details, char):
-        ougiInfo = self.removeTooltips(details.find_all("td")[2].get_text()).split('%')
-        if ougiInfo.__len__() > 1:
-            percentage = ougiInfo[0]
-            char.setOugiEffect(percentage,ougiInfo[1])
-        else:
-            char.setOugiEffect(self.convertOugi(ougiInfo[0]),ougiInfo[0])
+        ougiInfo = self.removeTooltips(details.find_all("td")[2].get_text()).split(' ', 1)
+        char.setOugiEffect(self.convertOugi(ougiInfo[0]),ougiInfo[0]+ougiInfo[1])
 
     def parseDetails(self, details, char):
         # get character rarity
@@ -102,13 +114,18 @@ class GbfScraper:
                 char.setVA(statData.get_text())
 
     def findStat(self, data):
-        values = re.split(r'\W+',re.sub(r"\s+", "", data.get_text()))
-        if "Fullyuncapped" in data.get_text():
-            maxStat = values[1].replace("FullyuncappedHPatMAXlevel", "").replace("FullyuncappedATKatMAXlevel", "")
+        values = data.get_text().replace("(+","/").replace(")","").replace(" ", "").split("/")
+        # check for fully uncapped stat. pops from list for compatibility
+        # on checking bonuses with chars without 5* uncap.
+        if "Fully uncapped" in data.get_text():
+            index = values[1].index("Fullyuncapped")
+            maxStat = values[1][:index]
+            values.pop(1)
         else:
             maxStat = values[0]
-        if "bonusesfromCross" in data.get_text():
-            bonusStat = values[2].replace("TotalHPbonusesfromCross", "").replace("TotalATKbonusesfromCross", "")
+        if "bonuses from Cross" in data.get_text():
+            index = values[1].index("Total")
+            bonusStat = values[1][:index]
         else:
             bonusStat = 0
         return maxStat, bonusStat
@@ -195,16 +212,16 @@ class GbfScraper:
 
     def convertOugi(self, data):
         keyword = data.split(" ")[0]
-        if keyword.lower() == "massive":
+        if "massive" in keyword.lower():
             return "450"
-        elif keyword.lower() == "big":
+        elif "big" in keyword.lower():
             return "400"
         else:
             return "300"
 
     # convert a gbf.wiki relative hyperlink to absolute URI
     def convertLink(self, page):
-        return "https://gbf.wiki" + "/Arulumaya"#page
+        return "https://gbf.wiki" + page
 
 
     def start(self):
@@ -212,6 +229,6 @@ class GbfScraper:
         page = requests.get(listUrl)
         soup = BeautifulSoup(page.content,'html.parser')
         results = soup.select("table tbody tr")
-        for char in range(1,2):
+        for char in range(1,11):
             self.parseChar(results[char])
 
