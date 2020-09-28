@@ -28,12 +28,12 @@ class GbfScraper:
         self.parseSupports(charDetails[3], character)
         #print(character.name, character.rarity, character.uncap, character.maxHP, character.maxATK, character.element, character.races, character.style, character.specialty, character.gender)
         #print(character.skills[1])
-        self.addToDB(character)
-        #pprint(vars(character))
+        #self.addToDB(character)
+        pprint(vars(character))
 
     def addToDB(self, char):
-        dict = vars(char)
-        self.dbChars.insert(char.__dict__)
+        success = self.dbChars.insert(char.__dict__)
+        print(success)
 
     def parseSupport(self, supportRow):
         supportCells = supportRow.find_all("td")
@@ -72,14 +72,13 @@ class GbfScraper:
         self.parseRarity(details.find("div", class_="char-rarity").find("img")['src'], char)
         # get char uncap
         self.parseUncap(details.find("div", class_="char-uncap"), char)
-        tabber = details.find_all("div", class_="tabber")
-        self.parseStats(tabber[1], char)
-        self.parseExtraData(tabber[1], char)
+        tables = details.find_all("table", class_="wikitable")
+        self.parseStats(tables[1], char)
+        self.parseExtraData(tables[3], char)
         # print(details)
 
     def parseExtraData(self, details, char):
-        extraTable = details.find_all("div", class_="tabbertab")[1]
-        extraData = extraTable.select("div table tbody")
+        extraData = details.select("div table tbody")
         extraDataRows = extraData[0].find_all("tr")
         char.setID(extraDataRows[1].find("td").get_text())
         char.setCharID(extraDataRows[2].find("td").get_text())
@@ -103,8 +102,7 @@ class GbfScraper:
 
     def parseStats(self, content, char):
         #character stats
-        statTable = content.find_all("div", class_="tabbertab")[0]
-        charStats = statTable.select("div table tbody")
+        charStats = content.select("div table tbody")
         charStatRows = charStats[0].find_all("tr")
         for i in range(1, charStatRows.__len__()):
             statName = charStatRows[i].find("th").get_text()
@@ -121,11 +119,11 @@ class GbfScraper:
             elif statName == "Element":
                 char.setElement(self.findElement(charStatRows[i].find("img")))
             elif "Race" in statName:
-                char.setRace(self.findRace(charStatRows[i].find("img")))
+                char.setRace(self.findRace(charStatRows[i].find_all("img")))
             elif "Style" in statName:
                 char.setStyle(self.findStyle(charStatRows[i].find("img")))
             elif "Specialty" in statName:
-                char.setSpecialty(self.findSpecialty(charStatRows[i].find("img")))
+                char.setSpecialty(self.findSpecialty(charStatRows[i].find_all("img")))
             elif "Gender" in statName:
                 char.setGender(statData.get_text())
             elif statName == "Voice Actor":
@@ -151,24 +149,25 @@ class GbfScraper:
     #characters can have multiple specialities
     def findSpecialty(self, item):
         spec = []
-        if "Label_Weapon_Sabre" in item['src']:
-            spec.append("Sabre")
-        if "Label_Weapon_Dagger" in item['src']:
-            spec.append("Dagger")
-        if "Label_Weapon_Spear" in item['src']:
-            spec.append("Spear")
-        if "Label_Weapon_Axe" in item['src']:
-            spec.append("Axe")
-        if "Label_Weapon_Staff" in item['src']:
-            spec.append("Staff")
-        if "Label_Weapon_Gun" in item['src']:
-            spec.append("Gun")
-        if "Label_Weapon_Melee" in item['src']:
-            spec.append("Melee")
-        if "Label_Weapon_Bow" in item['src']:
-            spec.append("Bow")
-        if "Label_Weapon_Harp" in item['src']:
-            spec.append("Harp")
+        for i in item:
+            if "Label_Weapon_Sabre" in i['src']:
+                spec.append("Sabre")
+            if "Label_Weapon_Dagger" in i['src']:
+                spec.append("Dagger")
+            if "Label_Weapon_Spear" in i['src']:
+                spec.append("Spear")
+            if "Label_Weapon_Axe" in i['src']:
+                spec.append("Axe")
+            if "Label_Weapon_Staff" in i['src']:
+                spec.append("Staff")
+            if "Label_Weapon_Gun" in i['src']:
+                spec.append("Gun")
+            if "Label_Weapon_Melee" in i['src']:
+                spec.append("Melee")
+            if "Label_Weapon_Bow" in i['src']:
+                spec.append("Bow")
+            if "Label_Weapon_Harp" in i['src']:
+                spec.append("Harp")
         return spec
 
     def findStyle(self, item):
@@ -186,18 +185,19 @@ class GbfScraper:
     #characters can have multiple races (units with multiple chars).
     def findRace(self, item):
         race = []
-        if "Label_Race_Human" in item['src']:
-            race.append("Human")
-        if "Label_Race_Erune" in item['src']:
-            race.append("Erune")
-        if "Label_Race_Draph" in item['src']:
-            race.append("Draph")
-        if "Label_Race_Harvin" in item['src']:
-            race.append("Harvin")
-        if "Label_Race_Primal" in item['src']:
-            race.append("Primal")
-        if "Label_Race_Other" in item['src']:
-            race.append("Other")
+        for i in item:
+            if "Label_Race_Human" in i['src']:
+                race.append("Human")
+            if "Label_Race_Erune" in i['src']:
+                race.append("Erune")
+            if "Label_Race_Draph" in i['src']:
+                race.append("Draph")
+            if "Label_Race_Harvin" in i['src']:
+                race.append("Harvin")
+            if "Label_Race_Primal" in i['src']:
+                race.append("Primal")
+            if "Label_Race_Other" in i['src']:
+                race.append("Other")
         return race
 
     def findElement(self, item):
@@ -251,11 +251,11 @@ class GbfScraper:
         page = requests.get(listUrl)
         soup = BeautifulSoup(page.content,'html.parser')
         results = soup.select("table tbody tr")
-        for char in range(1,3):
+        for char in range(40,50):
             self.parseChar(results[char])
 
         #for x in self.dbChars.find():
         #    print(x)
 
         # drop db table after adding (dev only)
-        self.dbChars.drop()
+        #self.dbChars.drop()
